@@ -49,6 +49,5 @@
 #     }]
 #     return render_template('testledger.html',data=data)
 
-#hello this is the sample text so make changes
 
 
