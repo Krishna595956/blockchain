@@ -8,6 +8,8 @@ db=cluster['blockchain']
 users=db['users']
 ledgers=db['ledger']
 requests=db['requests']
+words=db['words']
+challenge=db['challenge']
 
 app=Flask(__name__)
 
@@ -49,12 +51,27 @@ def userhome():
 def requ():
     return render_template('gasdetails.html')
 
+@app.route('/addimage')
+def addimage():
+    return render_template('imagecategory.html')
+
+@app.route('/addwords')
+def addwords():
+    return render_template('wordscategory.html')
+
 @app.route('/addrequest',methods=['post'])
 def addrequest():
     gr=request.form['gasrequired']
     grew=request.form['gasrewarded']
     session['data']=request.form['data']
-    session['category']=request.form['category']
+    category=request.form['category']
+    session['category']=category
+    if requests.count_documents({ })>0:
+        return render_template('gasdetails.html',status="Request already added")
+    if category=="words":
+        data=words.find()
+        data1=list(data)[0]
+        challenge.insert_one(data1)
     requests.insert_one({'gasrequired':gr,'gasrewarded':grew})
     return render_template('gasdetails.html',status='Request added successfully')
 
@@ -169,17 +186,44 @@ def ledgerda():
     # ledgers.update_one({''},{'$inc',{'solved':1}})
     return 'Block added successfully'
 
-@app.route('/acceptrequest')
-def acceptreauest():
-    return redirect(location=session['category'])
-
 @app.route('/deny')
 def deny():
     return redirect('/viewrequests')
 
-@app.route('/imagecategory')
-def imagecategory():
-    return render_template('/imagecategory.html')
+@app.route('/wordscategory',methods=['post'])
+def wordscategory():
+    desc=request.form['description']
+    letters=request.form['letters']
+    answer=request.form['answer']
+    print(desc,letters,answer)
+    a=answer.split(',')
+    if challenge.count_documents({ })>0:
+        return render_template('wordscategory.html',status="Challenge already added")
+    words.insert_one({"desc":desc,"letters":letters,"answer":a,"category":"words"})
+    return render_template('wordscategory.html',status="Challenge added successfully",count=len(a))
+
+@app.route('/acceptrequest')
+def acceptrequest():
+    data=challenge.find()
+    data1=challenge.find()
+    data=list(data)[0]
+    session['data1']=list(data1)[0]['answer']
+    if data['category']=="words":
+        return render_template('wordschallenge.html',data=data,count=len(session['data']))
+    return "hii"
+
+@app.route('/verifywords',methods=['post'])
+def verifywords():
+    data=challenge.find()
+    data=list(data)[0]
+    z=session['data1']
+    print(z)
+    a=request.form['answer']
+    if a in z:
+        z.remove(a)
+        print(z)
+        return render_template('wordschallenge.html',count=len(z),data=data)
+    return render_template('wordschallenge.html',status="Try another word",count=len(a),data=data)
 
 if __name__=='__main__':
     app.run(debug=True)
