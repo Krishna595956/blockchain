@@ -201,7 +201,8 @@ def ledgerda():
     elif data=="image":
         data1=image.find()
         image.delete_one(list(data1)[0])
-    return 'Block added successfully'
+    ledgerdata=ledgers.find()
+    return render_template('ledger.html',status="Block added successfully",data=ledgerdata)
 
 @app.route('/reject')
 def reject():
@@ -221,45 +222,53 @@ def wordscategory():
 
 @app.route('/acceptrequest')
 def acceptrequest():
-    c=ledgers.count_documents({ })
-    session['ledgercount']=c
-    data=challenge.find()
-    data=list(data)[0]
-    charge=requests.find()
-    charge=list(charge)[0]['gasrequired']
-    users.update_one({"username":session['name']},{"$inc":{"coins":-(int(charge))}})
-    if data['category']=="words":
-        data1=challenge.find()
-        session['data1']=list(data1)[0]['answer']
-        return render_template('wordschallenge.html',data=data,count=len(session['data1']))
-    elif data['category']=='image':
-        a=data['urldata']
-        return render_template('imagechallenge.html',urldata=a)
-    return "hii"
+    try:
+        c=ledgers.count_documents({ })
+        session['ledgercount']=c
+        data=challenge.find()
+        data=list(data)[0]
+        charge=requests.find()
+        charge=list(charge)[0]['gasrequired']
+        users.update_one({"username":session['name']},{"$inc":{"coins":-(int(charge))}})
+        if data['category']=="words":
+            data1=challenge.find()
+            session['data1']=list(data1)[0]['answer']
+            return render_template('wordschallenge.html',data=data,count=len(session['data1']))
+        elif data['category']=='image':
+            a=data['urldata']
+            return render_template('imagechallenge.html',urldata=a)
+        return "hii"
+    except:
+        return render_template('requests.html',status='Request already satisfied')
 
 @app.route('/verifywords',methods=['post'])
 def verifywords():
-    data=challenge.find()
-    data=list(data)[0]
-    z=session['data1']
-    print(z)
-    a=request.form['answer']
-    if a in z:
-        z.remove(a)
-        session['data1']=z
-        if len(session['data1'])==0:
-            return redirect('/addblock')
-        return render_template('wordschallenge.html',count=len(z),data=data)
-    return render_template('wordschallenge.html',status="Try another word",count=len(z),data=data)
-
+    try:
+        data=challenge.find()
+        data=list(data)[0]
+        z=session['data1']
+        print(z)
+        a=request.form['answer']
+        if a in z:
+            z.remove(a)
+            session['data1']=z
+            if len(session['data1'])==0:
+                return redirect('/addblock')
+            return render_template('wordschallenge.html',count=len(z),data=data)
+        return render_template('wordschallenge.html',status="Try another word",count=len(z),data=data)
+    except:
+        return render_template('ledger.html',status="This block is already added")
+    
 @app.route('/verifyimage',methods=['post'])
 def verifyimage():
     ans=request.form['answer']
     data=challenge.find()
     answer=list(data)[0]['answer']
+    data=challenge.find()
+    urldata=list(data)[0]['urldata']
     if ans==answer:
         return redirect('/addblock')
-    return render_template('imagechallenge.html',status="Your answer is incorrect")
+    return render_template('imagechallenge.html',status="Your answer is incorrect",urldata=urldata)
 
 @app.route('/addimagechallenge',methods=['post'])
 def addimagecha():
