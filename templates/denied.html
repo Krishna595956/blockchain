@@ -76,6 +76,9 @@
         #buttons {
             display: flex;
         }
+        h3{
+            margin-top: 200px;
+        }
     </style>
 </head>
 
@@ -96,73 +99,13 @@
                 </ul>
             </div>
     </nav>
-    <div id="main">
-        <table>
-            <tr>
-                <th>Gas required</th>
-                <th>Gas rewarded</th>
-                <th>Accept/Deny</th>
-            </tr>
-            {% for i in data %}
-            <tr>
-                <td>{{i['gasrequired']}}</td>
-                <td>{{i['gasrewarded']}}</td>
-                <td><button class="btn btn-success" onclick="accept()" >Accept</button><button
-                        class="btn btn-danger" onclick="deny()">Deny</button></td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-    <div id="two">
-        <div>
-            <div class="row">
-                <button class="btn btn-outline-danger" style="margin-left: 210px;margin-bottom:50px" onclick="close1()">close</button>
-            </div>
-            <p>Do you want to accept the challenge?</p>
-            <div class="row">
-                <div id="buttons">
-                    <a href='/acceptrequest'><button class="btn btn-outline-success" style="margin-left: 80px;">Yes</button></a>
-                    <button class="btn btn-outline-danger" onclick="close1()">No</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div id="three">
-        <div>
-            <div class="row">
-                <button class="btn btn-outline-danger" style="margin-left: 210px;margin-bottom:50px" onclick="close1()">close</button>
-            </div>
-            <p>Do you want to deny the challenge?</p>
-            <div class="row">
-                <div id="buttons">
-                    <a href="/reject"><button class="btn btn-outline-success" style="margin-left: 80px;">Yes</button></a>
-                    <button class="btn btn-outline-danger" onclick="close1()">No</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    </div>
+    <center>
+        <h3><marquee loop="">{{response}}</marquee></h3>
+        <a href='/nextrequest'><button class="btn btn-success">View next Request</button></a>
+    </center>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous">
         </script>
-    <script>
-        function accept() {
-            let a = document.getElementById('two').style.display;
-            console.log(a)
-            document.getElementById('two').style.display = 'block';
-            document.getElementById('main').style.filter='blur(26px)';
-        }
-        function close1(){
-            console.log('close executed')
-            document.getElementById('two').style.display='none';
-            document.getElementById('three').style.display='none';
-            document.getElementById('main').style.filter='blur(0px)';
-        }
-        function deny(){
-            document.getElementById('three').style.display='block';
-            document.getElementById('main').style.filter='blur(26px)';
-        }
-    </script>
 </body>
 
 </html>

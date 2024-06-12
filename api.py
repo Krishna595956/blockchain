@@ -39,11 +39,6 @@ def admin():
 @app.route('/adminhome')
 def adminhome():
     return render_template('admindashboard.html')
-
-@app.route('/leaderboard')
-def leaderboard():
-    return render_template('leaderboard.html')
-
 @app.route('/userhome')
 def userhome():
     return render_template('dashboard.html')
@@ -84,7 +79,12 @@ def addrequest():
 @app.route('/viewrequests')
 def viewreq():
     data=requests.find()
-    return render_template('requests.html',data=data)
+    try:
+        if session['status']==0:
+            return render_template('denied.html',response="You have denied the current request and please wait for the next request.")
+        return render_template('requests.html',data=data)
+    except:
+        return render_template('requests.html',data=data)
 
 @app.route('/accepted')
 def accept():
@@ -108,8 +108,8 @@ def registeruser():
     if not data:
         if password!=rpassword:
             return render_template('register.html',status='Passwords do not match')
-        users.insert_one({"username":username,"password":password,'flag':0,'coins':1000,'solved':0})
-        return render_template('register.html',status="Registration succesful")
+        users.insert_one({"username":username,"password":password,'flag':0,'coins':1000,'solved':0,"status":0})
+        return render_template('register.html',status="Registration successful")
     return render_template('register.html',status="Username already exists")
 
 @app.route('/resetpassword',methods=['post'])
@@ -169,6 +169,8 @@ def logout():
 @app.route('/addblock')
 def ledgerda():
     c=ledgers.count_documents({ })
+    if c!=session['ledgercount']:
+        return render_template('denied.html',response="Block already added")
     data=datetime.datetime.now()
     hasher = hashlib.sha256()
     hasher.update(str(data).encode()) 
@@ -201,9 +203,12 @@ def ledgerda():
         image.delete_one(list(data1)[0])
     return 'Block added successfully'
 
-@app.route('/deny')
-def deny():
-    return redirect('/viewrequests')
+@app.route('/reject')
+def reject():
+    session['status']=0
+    count=ledgers.count_documents({ })
+    session['ledgercount']=count
+    return render_template('denied.html',response="You have denied the current request and please wait for the next request.")
 
 @app.route('/wordscategory',methods=['post'])
 def wordscategory():
@@ -216,6 +221,8 @@ def wordscategory():
 
 @app.route('/acceptrequest')
 def acceptrequest():
+    c=ledgers.count_documents({ })
+    session['ledgercount']=c
     data=challenge.find()
     data=list(data)[0]
     charge=requests.find()
@@ -261,7 +268,27 @@ def addimagecha():
     image.insert_one({"urldata":urldata,'answer':answer,"category":"image"})
     return render_template('imagecategory.html',status="challenge added successfully")
 
+@app.route('/nextrequest')
+def nextrequest():
+    c=ledgers.count_documents({ })
+    if c==session['ledgercount']:
+        return render_template('denied.html',response="You have denied the current request and please wait for the next request.")
+    session['status']=1
+    return redirect('/viewrequests')
 
+@app.route('/status')
+def stat():
+    session['status']=1
+    return redirect('/userhome')
+
+@app.route('/leaderboard')
+def leaderboard():
+    data=users.find()
+    data=list(data)
+    for i in range(len(data)-1):
+        if data[i]['coins']<data[i+1]['coins']:
+            data[i],data[i+1]=data[i+1],data[i]
+    return render_template('leaderboard.html',data=data)
 
 if __name__=='__main__':
     app.run(debug=True)
