@@ -296,7 +296,7 @@ def loginuser():
                      "password":gpassword
                  })
     http=urllib3.PoolManager()
-    response=http.request('post','http://127.0.0.1:5000/loginAPI',headers={'Content-Type':'application/json'},
+    response=http.request('post','http://127.0.0.1:7007/loginAPI',headers={'Content-Type':'application/json'},
                  body=encoded_body)
     data = json.loads(response.data.decode('utf-8'))
     data = json.loads(data)
@@ -331,7 +331,7 @@ def registeruser():
                      "rpassword":rpassword
                  })
     http=urllib3.PoolManager()
-    response=http.request('post','http://127.0.0.1:5000/registerAPI',headers={'Content-Type':'application/json'},
+    response=http.request('post','http://127.0.0.1:7007/registerAPI',headers={'Content-Type':'application/json'},
                  body=encoded_body)
     data = json.loads(response.data.decode('utf-8'))
     data = json.loads(data)
@@ -360,7 +360,7 @@ def adminlogin():
         "password":password
     })
     http=urllib3.PoolManager()
-    response=http.request('post','http://127.0.0.1:5000/adminloginAPI',headers={'Content-Type':'application/json'},
+    response=http.request('post','http://127.0.0.1:7007/adminloginAPI',headers={'Content-Type':'application/json'},
                  body=encoded_body)
     data = json.loads(response.data.decode('utf-8'))
     data = json.loads(data)
@@ -370,5 +370,5 @@ def adminlogin():
         return render_template('adminlogin.html',status="Invalid credentials")
     
 if __name__=='__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0',port=7007,debug=True)
 
