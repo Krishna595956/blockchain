@@ -122,7 +122,11 @@ def ledgerdata1():
 
 @app.route('/logout')
 def logout():
-        session.clear()
+    try:
+        session['name']
+        session['name']=''
+        return render_template('confirm.html')
+    except:
         return render_template('confirm.html')
 
 @app.route('/addblock')
