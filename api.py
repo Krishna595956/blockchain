@@ -21,6 +21,10 @@ app.secret_key='reddy'
 def confirm():
     return render_template('confirm.html')
 
+@app.route('/s')
+def s():
+    return session['name']
+
 @app.route('/user')
 def default():
     return render_template('login.html')
@@ -289,8 +293,10 @@ def loginAPI():
 
 @app.route('/loginuser',methods=['POST','GET'])
 def loginuser():
+    print("welcome user")
     gname=request.form['username']
     gpassword=request.form['password']
+    user1=users.find_one({"username":gname})
     encoded_body = json.dumps({
                      "username":gname,
                      "password":gpassword
@@ -302,6 +308,8 @@ def loginuser():
     data = json.loads(data)
     if data['message']=='you are authorised':
         session['name'] = gname
+        if user1['flag']==0:
+            return render_template('resetpassword.html')
         return redirect(url_for('userhome'))
     return render_template('login.html',status=data['message'])
 
