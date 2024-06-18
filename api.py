@@ -2,6 +2,7 @@ from flask import *
 from pymongo import MongoClient
 import hashlib
 import datetime
+import urllib3
 
 cluster=MongoClient('mongodb+srv://Krishna123:1234567890@cluster0.i5fh2ng.mongodb.net/')
 db=cluster['blockchain']
@@ -89,28 +90,6 @@ def viewreq():
 @app.route('/accepted')
 def accept():
     return render_template('challenge.html')
-    
-@app.route('/adminlogin',methods=['post'])
-def adminlogin():
-    username=request.form['username']
-    password=request.form['password']
-    if username=='admin' and password=='1234567890':
-        return render_template('admindashboard.html')
-    return render_template('adminlogin.html',status='Invalid credentials')
-
-@app.route('/registeruser',methods=['post'])
-def registeruser():
-    username=request.form['username']
-    password=request.form['password']
-    rpassword=request.form['rpassword']
-    data=users.find_one({'username':username})
-    print(username)
-    if not data:
-        if password!=rpassword:
-            return render_template('register.html',status='Passwords do not match')
-        users.insert_one({"username":username,"password":password,'flag':0,'coins':1000,'solved':0,"status":0})
-        return render_template('register.html',status="Registration successful")
-    return render_template('register.html',status="Username already exists")
 
 @app.route('/resetpassword',methods=['post'])
 def reset():
@@ -126,22 +105,6 @@ def reset():
         else:
             return render_template('resetpassword.html',status='Passwords do not match')
     return render_template('resetpassword.html',status='Incorrect current password')
-
-@app.route('/loginuser',methods=['post'])
-def loginuser():
-    username=request.form['username']
-    password=request.form['password']
-    data=users.find_one({'username':username})
-    if data:
-        if data['password']==password and data['flag']==0:
-            session['name']=username
-            return render_template('resetpassword.html')
-        elif data['password']==password:
-            session['name']=username
-            return render_template('dashboard.html')
-        else:
-            return render_template('login.html',status='Incorrect password')
-    return render_template('login.html',status="User does not exist")
 
 @app.route('/ledgerdata')
 def ledgerdata():
@@ -159,18 +122,17 @@ def ledgerdata1():
 
 @app.route('/logout')
 def logout():
-    try:
-        session['name']
-        session['name']=''
-        return render_template('confirm.html')
-    except:
+        session.clear()
         return render_template('confirm.html')
 
 @app.route('/addblock')
 def ledgerda():
     c=ledgers.count_documents({ })
     if c!=session['ledgercount']:
-        return render_template('denied.html',response="Block already added")
+        data=ledgers.find()
+        data=list(data)
+        data.reverse()
+        return render_template('userledger.html',status="Block added successfully",data=data)
     data=datetime.datetime.now()
     hasher = hashlib.sha256()
     hasher.update(str(data).encode()) 
@@ -201,8 +163,10 @@ def ledgerda():
     elif data=="image":
         data1=image.find()
         image.delete_one(list(data1)[0])
-    ledgerdata=ledgers.find()
-    return render_template('ledger.html',status="Block added successfully",data=ledgerdata)
+    data=ledgers.find()
+    data=list(data)
+    data.reverse()
+    return render_template('userledger.html',status="Block added successfully",data=data)
 
 @app.route('/reject')
 def reject():
@@ -239,8 +203,8 @@ def acceptrequest():
             return render_template('imagechallenge.html',urldata=a)
         return "hii"
     except:
-        return render_template('requests.html',status='Request already satisfied')
-
+        return render_template('requests.html',status="Request already satisfied.")
+  
 @app.route('/verifywords',methods=['post'])
 def verifywords():
     try:
@@ -257,18 +221,26 @@ def verifywords():
             return render_template('wordschallenge.html',count=len(z),data=data)
         return render_template('wordschallenge.html',status="Try another word",count=len(z),data=data)
     except:
-        return render_template('ledger.html',status="This block is already added")
+        data=ledgers.find()
+        data=list(data).reverse()
+        return render_template('ledger.html',status="This block is already added",data=data)
     
 @app.route('/verifyimage',methods=['post'])
 def verifyimage():
-    ans=request.form['answer']
-    data=challenge.find()
-    answer=list(data)[0]['answer']
-    data=challenge.find()
-    urldata=list(data)[0]['urldata']
-    if ans==answer:
-        return redirect('/addblock')
-    return render_template('imagechallenge.html',status="Your answer is incorrect",urldata=urldata)
+    try:
+        ans=request.form['answer']
+        data=challenge.find()
+        answer=list(data)[0]['answer']
+        data=challenge.find()
+        urldata=list(data)[0]['urldata']
+        if ans==answer:
+            return redirect('/addblock')
+        return render_template('imagechallenge.html',status="Your answer is incorrect",urldata=urldata)
+    except:
+        data=ledgers.find()
+        data=list(data)
+        data.reverse()
+        return render_template('/userledger.html',status="Block already added",data=data)
 
 @app.route('/addimagechallenge',methods=['post'])
 def addimagecha():
@@ -280,6 +252,8 @@ def addimagecha():
 @app.route('/nextrequest')
 def nextrequest():
     c=ledgers.count_documents({ })
+    print(c)
+    print(session['ledgercount'])
     if c==session['ledgercount']:
         return render_template('denied.html',response="You have denied the current request and please wait for the next request.")
     session['status']=1
@@ -299,6 +273,98 @@ def leaderboard():
             data[i],data[i+1]=data[i+1],data[i]
     return render_template('leaderboard.html',data=data)
 
+@app.route('/loginAPI',methods=['POST','GET'])
+def loginAPI():
+    json=request.get_json()
+    username=json['username']
+    password=json['password']
+    print(username,password)
+    for i in users.find({'username':username,'password':password}):
+        return jsonify('{"message":"you are authorised"}')
+    return jsonify('{"message":"you are not authorised"}')
+
+@app.route('/loginuser',methods=['POST','GET'])
+def loginuser():
+    gname=request.form['username']
+    gpassword=request.form['password']
+    encoded_body = json.dumps({
+                     "username":gname,
+                     "password":gpassword
+                 })
+    http=urllib3.PoolManager()
+    response=http.request('post','http://127.0.0.1:5000/loginAPI',headers={'Content-Type':'application/json'},
+                 body=encoded_body)
+    data = json.loads(response.data.decode('utf-8'))
+    data = json.loads(data)
+    if data['message']=='you are authorised':
+        session['name'] = gname
+        return redirect(url_for('userhome'))
+    return render_template('login.html',status=data['message'])
+
+@app.route('/registerAPI',methods=['post'])
+def registerAPI():
+    json=request.get_json()
+    username=json['username']
+    password=json['password']
+    rpassword=json['rpassword']
+    data=users.find_one({'username':username})
+    print(username)
+    if not data:
+        if password!=rpassword:
+            return jsonify('{"message":"0"}')
+        users.insert_one({"username":username,"password":password,'flag':0,'coins':1000,'solved':0,"status":0})
+        return jsonify('{"message":"1"}')
+    return jsonify('{"message":"2"}')
+
+@app.route('/registeruser',methods=['post','get'])
+def registeruser():
+    username=request.form['username']
+    password=request.form['password']
+    rpassword=request.form['rpassword']
+    encoded_body = json.dumps({
+                     "username":username,
+                     "password":password,
+                     "rpassword":rpassword
+                 })
+    http=urllib3.PoolManager()
+    response=http.request('post','http://127.0.0.1:5000/registerAPI',headers={'Content-Type':'application/json'},
+                 body=encoded_body)
+    data = json.loads(response.data.decode('utf-8'))
+    data = json.loads(data)
+    if data['message']=='1':
+        return render_template('register.html',status='Registration successful')
+    elif data['message']=='0':
+        return render_template('register.html',status='Password incorrect')
+    else:
+        return render_template('register.html',status="Username already exists")
+    
+@app.route('/adminloginAPI',methods=['post'])
+def adminloginAPI():
+    json=request.get_json()
+    username=json['username']
+    password=json['password']
+    if username=='admin' and password=='1234567890':
+        return jsonify('{"message":"0"}')
+    return jsonify('{"message":"1"}')
+
+@app.route('/adminlogin',methods=['post','get'])
+def adminlogin():
+    username=request.form['username']
+    password=request.form['password']
+    encoded_body=json.dumps({
+        "username":username,
+        "password":password
+    })
+    http=urllib3.PoolManager()
+    response=http.request('post','http://127.0.0.1:5000/adminloginAPI',headers={'Content-Type':'application/json'},
+                 body=encoded_body)
+    data = json.loads(response.data.decode('utf-8'))
+    data = json.loads(data)
+    if data['message']=="0":
+        return redirect(url_for('adminhome'))
+    else:
+        return render_template('adminlogin.html',status="Invalid credentials")
+    
 if __name__=='__main__':
     app.run(debug=True)
 
